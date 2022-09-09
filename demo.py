@@ -1,4 +1,4 @@
-import console as dc
+import datum_console.console as dc
 
 
 @dc.ConsoleCommand
