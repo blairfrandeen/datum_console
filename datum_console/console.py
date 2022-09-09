@@ -1,4 +1,5 @@
 import textwrap
+from dataclasses import dataclass, field
 from typing import Callable, Optional
 
 
@@ -85,6 +86,17 @@ def patch_command(target: str, source: str):
 def get_input(
     session_args=None, prompt: str = ">>", break_commands: list[str] = ["quit"]
 ) -> Callable:
+    """Start the interactive prompt.
+
+    Arguments:
+        session_args:   any persistent data that needs to be passed between
+                        session commands. Default None.
+        prompt:         Text to display at prompt. Default ">>"
+        break_commands: Commands that exit the console.
+
+    Returns:
+        Last command executed.
+    """
     cmd_dict = _cmd_dict()
     while True:
         user_input = input(prompt)
@@ -104,7 +116,7 @@ def get_input(
             if user_cmd in cmd_dict.keys():
                 exec_cmd = cmd_dict[user_cmd]
                 # if command match, parse args and kwargs
-                for arg in args:
+                for arg in args:  # TODO: TEST
                     if "=" in arg:
                         key, value = arg.split("=")
                         kwargs[key] = value
@@ -115,7 +127,7 @@ def get_input(
         # Try to execute the command
         if exec_cmd is not None:
             try:
-                if session_args is not None:
+                if session_args is not None:  # TODO: TEST
                     exec_cmd(session_args, *args, **kwargs)
                 else:
                     exec_cmd(*args, **kwargs)
@@ -182,7 +194,7 @@ class _ConsoleCommand:
         _COMMAND_HISTORY.append(self.name)
         if self.enabled:
             return self.function(*args, **kwargs)
-        else:
+        else:  # TODO: Determine if disabled funcs should raise error?
             print("Disabled.")
             return None
 
@@ -194,20 +206,22 @@ class _ConsoleCommand:
         for alias in self.aliases:
             cmd_str = cmd_str + alias + ", "
         cmd_str = cmd_str[:-2]  # remove the last comma and space
-        doc_str: list[str] = textwrap.wrap(
-            self.function.__doc__.strip().split("\n")[0],
-            width=width_description,
-            initial_indent="",
-            subsequent_indent=" " * width_command,
+        doc_str: Optional[list[str]] = (
+            textwrap.wrap(
+                self.function.__doc__.strip().split("\n")[0],
+                width=width_description,
+                initial_indent="",
+                subsequent_indent=" " * width_command,
+            )
+            if self.function.__doc__ is not None
+            else None
         )
-        #  if doc_str.startswith("\n"):
-        #  doc_str = doc_str[1:]
-        #  cmd_str = cmd_str + "\t\t" + doc_str.split("\n")[0]
-        cmd_str: str = "{cs:{w1}}{ds:{w2}}".format(
-            cs=cmd_str, ds=doc_str[0], w1=width_command, w2=width_description
-        )
-        for line in doc_str[1:]:
-            cmd_str += "\n" + line
+        if doc_str is not None:
+            cmd_str: str = "{cs:{w1}}{ds:{w2}}".format(
+                cs=cmd_str, ds=doc_str[0], w1=width_command, w2=width_description
+            )
+            for line in doc_str[1:]:
+                cmd_str += "\n" + line
         return textwrap.indent(cmd_str, " " * pre_indent)
 
 
@@ -226,7 +240,7 @@ def _cmd_dict() -> dict:
 
 
 @ConsoleCommand(name="null_cmd", aliases=[""], hidden=True)
-def _null_cmd(*args):
+def _null_cmd(*args):  # pragma: no cover
     """Default command if no input given"""
     pass
 
@@ -245,7 +259,7 @@ def _quit_function(*args):
     exit(0)
 
 
-@ConsoleCommand(name="help", aliases=["h", "wtf"])
+@ConsoleCommand(name="help", aliases=["h"])
 def _help_function(*args):
     """Display this help message. Type help <command> for more detail."""
     cmd_dict = _cmd_dict()
@@ -261,3 +275,12 @@ def _help_function(*args):
             if not cmd.hidden:
                 #  print("  ", end="")
                 print(cmd)
+
+
+@dataclass
+class _CommandList:
+    commands: list[_ConsoleCommand] = field(default_factory=list)
+    patterns: list[_ConsolePattern] = field(default_factory=list)
+
+
+_command_list = _CommandList()
