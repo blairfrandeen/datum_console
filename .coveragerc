@@ -1,0 +1,12 @@
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == "__main__":
+    raise AssertionError
+    raise NotImplementedError
+    def __repr__
+
+[run]
+omit = 
+    /usr/lib/python3/*
+    tests/*
