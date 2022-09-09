@@ -3,7 +3,6 @@ from dataclasses import dataclass, field
 from typing import Callable, Optional
 
 
-# TODO: handle help functions with no docstring
 ####################
 # PUBLIC FUNCTIONS #
 ####################
